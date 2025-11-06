@@ -87,7 +87,64 @@ export default function AuthPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="grid gap-5">
-          {/* form inputs */}
+          {isSignup && (
+            <>
+              <input
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                placeholder="Full Name"
+                className="px-4 py-3 border border-indigo-200 rounded-xl bg-white text-black focus:ring-2 focus:ring-indigo-300 outline-none"
+                required
+              />
+              <select
+                name="standard"
+                value={form.standard}
+                onChange={handleChange}
+                className="px-4 py-3 border border-indigo-200 rounded-xl bg-white text-black focus:ring-2 focus:ring-indigo-300 outline-none"
+                required
+              >
+                <option value="">Select Standard</option>
+                <option value="Std8">Std 8</option>
+                <option value="Std9">Std 9</option>
+                <option value="Std10">Std 10</option>
+                <option value="Std11">Std 11</option>
+                <option value="Std12">Std 12</option>
+              </select>
+            </>
+          )}
+
+          <input
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            placeholder="Email"
+            type="email"
+            className="px-4 py-3 border border-indigo-200 rounded-xl bg-white text-black focus:ring-2 focus:ring-indigo-300 outline-none"
+            required
+          />
+
+          <input
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            placeholder="Password"
+            type="password"
+            className="px-4 py-3 border border-indigo-200 rounded-xl bg-white text-black focus:ring-2 focus:ring-indigo-300 outline-none"
+            required
+          />
+          <div className="text-right">
+            {!isSignup && (
+              <button
+                type="button"
+                onClick={() => navigate("/forgot-password")}
+                className="text-sm text-indigo-700 hover:underline"
+              >
+                Forgot Password?
+              </button>
+            )}
+          </div>
+
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
