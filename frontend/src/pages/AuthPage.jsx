@@ -6,7 +6,6 @@ import { FaSignInAlt, FaUserPlus } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import auth from "../assets/auth.jpg";
-import Loader from "../components/Loader";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -60,18 +59,12 @@ export default function AuthPage() {
       style={{ backgroundImage: `url(${auth})` }}
     >
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"></div>
-      {loading && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-          <Loader />
-        </div>
-      )}
+
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
-        className={`relative z-10 w-full max-w-md bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-3xl p-10 ${
-          loading ? 'opacity-50 pointer-events-none' : ''
-        }`}
+        className="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl rounded-3xl p-10"
       >
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold text-black flex items-center gap-3 drop-shadow-md">
@@ -152,8 +145,9 @@ export default function AuthPage() {
             disabled={loading}
             className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold shadow-lg hover:from-indigo-700 hover:to-violet-700 transition-all duration-300"
           >
-            {isSignup ? "Sign Up" : "Login"}
+            {loading ? <LoaderComponent /> : isSignup ? "Sign Up" : "Login"}
           </motion.button>
+
         </form>
 
         <p className="text-center text-black text-xs mt-6 font-medium">

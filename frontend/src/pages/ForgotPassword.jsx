@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
-import Loader from "../components/Loader"; // Adjust the import path as needed
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -29,19 +28,12 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-indigo-50">
-      {/* Loader overlay */}
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <Loader />
-        </div>
-      )}
-
+    <div className="min-h-screen flex items-center justify-center bg-indigo-50">
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className={`bg-white p-10 rounded-2xl shadow-lg w-full max-w-md ${loading ? "opacity-50 pointer-events-none" : ""}`}
+        className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-md"
       >
         <h2 className="text-2xl font-bold text-center mb-6 text-indigo-700">
           Forgot Password
@@ -54,14 +46,13 @@ export default function ForgotPassword() {
             required
             placeholder="Enter your registered email"
             className="w-full px-4 py-3 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none"
-            disabled={loading}
           />
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={loading}
-            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-semibold shadow-md hover:bg-indigo-700 transition"
+            className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-semibold shadow-md hover:bg-indigo-700"
           >
             {loading ? "Sending..." : "Send Reset Link"}
           </motion.button>
@@ -71,7 +62,6 @@ export default function ForgotPassword() {
           <button
             onClick={() => navigate("/auth")}
             className="text-indigo-600 hover:underline"
-            disabled={loading}
           >
             Login
           </button>

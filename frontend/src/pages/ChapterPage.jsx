@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useSearchParams } from "react-router-dom";
 import { FaEdit, FaTrash, FaPlus, FaVideo, FaTimes } from "react-icons/fa";
-import Loader from "../components/Loader"; // Adjust path according to your setup
-import { toast } from "react-toastify";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -16,7 +14,6 @@ export default function ChapterPage() {
   const user = JSON.parse(sessionStorage.getItem("user"));
   const isAdmin = user?.role === "admin";
   const [editingTopic, setEditingTopic] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   const { chapterName } = useParams();
   const [searchParams] = useSearchParams();
@@ -35,7 +32,6 @@ export default function ChapterPage() {
         setChapterId(res.data.chapter._id);
       } catch (err) {
         console.error("Failed to load chapter id:", err);
-        toast.error("Failed to load chapter info.");
       }
     };
     fetchChapterId();
@@ -49,10 +45,7 @@ export default function ChapterPage() {
         setTopics(res.data.topics);
         if (res.data.topics.length) setSelectedTopic(res.data.topics[0]);
       })
-      .catch((err) => {
-        console.error(err);
-        toast.error("Failed to load topics.");
-      });
+      .catch(console.error);
   }, [chapterId, standard]);
 
   const formChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -66,29 +59,24 @@ export default function ChapterPage() {
   const deleteTopic = async (topicId) => {
     if (!window.confirm("Are you sure you want to delete this topic?")) return;
     try {
-      setLoading(true);
       await axios.delete(`${API_URL}/api/chapters/topics/${chapterId}/${topicId}`, { params: { standard } });
       const resp = await axios.get(`${API_URL}/api/chapters/topics/${chapterId}`, { params: { standard } });
       setTopics(resp.data.topics);
-      if (selectedTopic?._id === topicId) setSelectedTopic(null);
-      toast.success("Topic deleted successfully");
+      if (selectedTopic && selectedTopic._id === topicId) setSelectedTopic(null);
     } catch (err) {
-      toast.error("Failed to delete topic");
+      alert("Failed to delete topic");
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
   const submitTopic = async (e) => {
     e.preventDefault();
     if (!chapterId || !standard) {
-      toast.error("Chapter or standard not set yet.");
+      alert("Chapter or standard not set yet.");
       return;
     }
-  
-    setLoading(true);
     let videoUrl = form.videoUrl;
+
     const driveMatch = form.videoUrl.match(/\/d\/([a-zA-Z0-9_-]+)\//);
     if (driveMatch) {
       const fileId = driveMatch[1];
@@ -100,23 +88,20 @@ export default function ChapterPage() {
         videoUrl = `https://www.youtube.com/embed/${videoId}`;
       }
     }
-  
+
     try {
       if (editingTopic) {
-        await axios.put(
-          `${API_URL}/api/chapters/topics/${chapterId}/${editingTopic._id}`,
-          { name: form.name, videoUrl },
-          { params: { standard } }
-        );
-        toast.success("Topic updated successfully");
+        await axios.put(`${API_URL}/api/chapters/topics/${chapterId}/${editingTopic._id}`, {
+          name: form.name,
+          videoUrl,
+        }, { params: { standard } });
       } else {
-        await axios.post(
-          `${API_URL}/api/chapters/topics/${chapterId}`,
-          { name: form.name, videoUrl },
-          { params: { standard } }
-        );
-        toast.success("Topic added successfully");
+        await axios.post(`${API_URL}/api/chapters/topics/${chapterId}`, {
+          name: form.name,
+          videoUrl,
+        }, { params: { standard } });
       }
+
       setShowModal(false);
       setForm({ name: "", videoUrl: "" });
       setEditingTopic(null);
@@ -124,20 +109,13 @@ export default function ChapterPage() {
       setTopics(resp.data.topics);
       if (!editingTopic && resp.data.topics.length) setSelectedTopic(resp.data.topics[0]);
     } catch (err) {
-      toast.error("Failed to save topic");
+      alert("Failed to save topic");
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-indigo-100">
-      {loading && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <Loader />
-        </div>
-      )}
+    <div className="flex flex-col md:flex-row min-h-screen ">
       <aside className="md:w-1/4 w-full bg-white rounded-lg shadow-lg p-5 flex flex-col space-y-4">
         <div className="flex justify-between items-center border-b pb-2">
           <h2 className="font-semibold text-xl text-indigo-700 flex items-center gap-2">
@@ -151,7 +129,6 @@ export default function ChapterPage() {
                 setForm({ name: "", videoUrl: "" });
                 setShowModal(true);
               }}
-              disabled={loading}
             >
               <FaPlus /> Add
             </button>
@@ -168,7 +145,6 @@ export default function ChapterPage() {
                     ? "bg-indigo-100 border-indigo-400 text-indigo-700 font-semibold"
                     : "bg-gray-50 hover:bg-indigo-50 border-transparent"
                 }`}
-                disabled={loading}
               >
                 {t.name}
               </button>
@@ -177,14 +153,12 @@ export default function ChapterPage() {
                   <button
                     onClick={() => openModalForEdit(t)}
                     className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                    disabled={loading}
                   >
                     <FaEdit /> Edit
                   </button>
                   <button
                     onClick={() => deleteTopic(t._id)}
                     className="flex items-center gap-1 text-red-600 hover:text-red-800"
-                    disabled={loading}
                   >
                     <FaTrash /> Delete
                   </button>
@@ -198,9 +172,7 @@ export default function ChapterPage() {
       <main className="flex-1 p-6 flex flex-col items-center justify-center">
         {selectedTopic && selectedTopic.videoUrl ? (
           <div className="w-full max-w-3xl bg-white rounded-2xl shadow-xl border p-6 flex flex-col items-center transition-all hover:shadow-2xl">
-            <h2 className="font-bold text-2xl text-indigo-700 mb-5 text-center">
-              {selectedTopic.name}
-            </h2>
+            <h2 className="font-bold text-2xl text-indigo-700 mb-5 text-center">{selectedTopic.name}</h2>
             <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-lg mb-5 bg-black">
               <iframe
                 src={selectedTopic.videoUrl}
@@ -239,8 +211,7 @@ export default function ChapterPage() {
               <FaTimes />
             </button>
             <h3 className="text-lg font-semibold text-indigo-700 mb-4 flex items-center gap-2">
-              {editingTopic ? <FaEdit /> : <FaPlus />}{" "}
-              {editingTopic ? "Edit Topic" : "New Topic"}
+              {editingTopic ? <FaEdit /> : <FaPlus />} {editingTopic ? "Edit Topic" : "New Topic"}
             </h3>
             <input
               required
@@ -261,16 +232,14 @@ export default function ChapterPage() {
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded-md border text-gray-600 hover:bg-gray-100"
                 onClick={() => setShowModal(false)}
-                disabled={loading}
+                className="px-4 py-2 rounded-md border text-gray-600 hover:bg-gray-100"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm active:scale-95"
-                disabled={loading}
               >
                 Save
               </button>
