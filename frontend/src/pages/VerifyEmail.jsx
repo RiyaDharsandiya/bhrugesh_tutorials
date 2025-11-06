@@ -9,7 +9,7 @@ import Loader from "../components/Loader";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export function VerifyEmail() {
+export default function VerifyEmail() {
   const navigate = useNavigate();
   const email = sessionStorage.getItem("pendingEmail");
   const [code, setCode] = useState("");

@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import auth from "../assets/auth.jpg";
 
 // ResetPassword Component
-export function ResetPassword() {
+export default function ResetPassword() {
   const { token } = useParams();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
