@@ -6,7 +6,6 @@ import { FaSignInAlt, FaUserPlus } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import auth from "../assets/auth.jpg";
-import Loader from "../components/Loader";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -55,8 +54,6 @@ export default function AuthPage() {
   };
 
   return (
-    <>
-  {loading?<Loader/>:
     <div
       className="relative min-h-screen bg-cover bg-center flex items-center justify-center"
       style={{ backgroundImage: `url(${auth})` }}
@@ -159,7 +156,5 @@ export default function AuthPage() {
 
       <ToastContainer position="top-right" autoClose={2500} theme="colored" />
     </div>
-}
-    </>
   );
 }
