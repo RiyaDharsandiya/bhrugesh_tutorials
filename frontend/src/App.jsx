@@ -1,12 +1,12 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Navbar from "./components/Navbar.jsx";
-import Loader from "./components/Loader.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import Footer from "./components/Footer.jsx"; 
-import ForgotPassword from "./pages/ForgotPassword.jsx";
-import ResetPassword from "./pages/ResetPassword.jsx";
-import PageNotFound from "./pages/PageNotFound.jsx"; 
+import Navbar from "./components/Navbar";
+import Loader from "./components/Loader";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Footer from "./components/Footer"; 
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import PageNotFound from "./pages/PageNotFound"; // ✅ new import
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
