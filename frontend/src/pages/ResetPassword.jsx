@@ -3,10 +3,12 @@ import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
+import Loader from "../components/Loader"; // adjust import path as needed
+import "react-toastify/dist/ReactToastify.css";
+import auth from "../assets/auth.jpg";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-export default function ResetPassword() {
+// ResetPassword Component
+export function ResetPassword() {
   const { token } = useParams();
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,9 +17,8 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const res = await axios.post(`${API_URL}/api/auth/reset-password/${token}`, { password });
+      const res = await axios.post(`${process.env.VITE_API_URL}/api/auth/reset-password/${token}`, { password });
       toast.success(res.data.message);
       setTimeout(() => navigate("/auth"), 2000);
     } catch (err) {
@@ -28,12 +29,20 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-indigo-50">
+    <div
+      className="relative min-h-screen bg-cover bg-center flex items-center justify-center"
+      style={{ backgroundImage: `url(${auth})` }}
+    >
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <Loader />
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="bg-white p-10 rounded-2xl shadow-lg w-full max-w-md"
+        className={`bg-white p-10 rounded-2xl shadow-lg w-full max-w-md ${loading ? "opacity-50 pointer-events-none" : ""}`}
       >
         <h2 className="text-2xl font-bold text-center mb-6 text-indigo-700">
           Reset Password
@@ -46,6 +55,7 @@ export default function ResetPassword() {
             required
             placeholder="Enter new password"
             className="w-full px-4 py-3 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none"
+            disabled={loading}
           />
           <motion.button
             whileHover={{ scale: 1.05 }}

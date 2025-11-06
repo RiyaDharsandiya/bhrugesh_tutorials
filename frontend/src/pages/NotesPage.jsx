@@ -8,6 +8,8 @@ import {
   FaPlus,
   FaBook,
 } from "react-icons/fa";
+import Loader from "../components/Loader"; // adjust path as needed
+import { toast } from "react-toastify";
 
 const STANDARDS = ["Std8", "Std9", "Std10", "Std11", "Std12"];
 const API_URL = import.meta.env.VITE_API_URL;
@@ -22,15 +24,22 @@ export default function NotesPage() {
   const [editingNote, setEditingNote] = useState(null);
   const [form, setForm] = useState({ noteName: "", pdfUrl: "" });
   const [standard, setStandard] = useState(isAdmin ? STANDARDS[0] : userStandard);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!standard) return;
+    setLoading(true);
     axios
       .get(`${API_URL}/api/notes`, {
         params: { standard, role: isAdmin ? "admin" : "user" },
       })
-      .then((res) => setNotes(res.data.notes))
-      .catch(console.error);
+      .then((res) => {
+        setNotes(res.data.notes);
+      })
+      .catch(() => {
+        toast.error("Failed to load notes");
+      })
+      .finally(() => setLoading(false));
   }, [standard, isAdmin]);
 
   const openModal = (note = null) => {
@@ -43,33 +52,48 @@ export default function NotesPage() {
 
   const submitNote = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       if (editingNote) {
         await axios.put(`${API_URL}/api/notes/${editingNote._id}`, form);
+        toast.success("Note updated successfully");
       } else {
         await axios.post(`${API_URL}/api/notes`, { ...form, standard });
+        toast.success("Note added successfully");
       }
       const res = await axios.get(`${API_URL}/api/notes`, { params: { standard } });
       setNotes(res.data.notes);
       setShowModal(false);
       setEditingNote(null);
     } catch {
-      alert("Failed to save note");
+      toast.error("Failed to save note");
+    } finally {
+      setLoading(false);
     }
   };
 
   const deleteNote = async (id) => {
     if (!window.confirm("Are you sure?")) return;
+    setLoading(true);
     try {
       await axios.delete(`${API_URL}/api/notes/${id}`);
       setNotes(notes.filter((n) => n._id !== id));
+      toast.success("Note deleted successfully");
     } catch {
-      alert("Failed to delete");
+      toast.error("Failed to delete note");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto  min-h-screen">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen relative">
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <Loader />
+        </div>
+      )}
+
       <h2 className="text-3xl font-extrabold mb-6 text-center text-indigo-800 flex items-center justify-center gap-2">
         <FaBook /> Notes
       </h2>
@@ -87,6 +111,7 @@ export default function NotesPage() {
                 }`}
                 onClick={() => setStandard(std)}
                 aria-label={`Select standard ${std}`}
+                disabled={loading}
               >
                 {std}
               </button>
@@ -96,6 +121,7 @@ export default function NotesPage() {
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-semibold shadow-md transition-transform active:scale-95"
             onClick={() => openModal()}
             aria-label="Add Note"
+            disabled={loading}
           >
             <FaPlus /> Add Note
           </button>
@@ -113,12 +139,9 @@ export default function NotesPage() {
                 <FaFilePdf className="text-indigo-600 text-2xl" />
                 {note.noteName}
               </h3>
-              <p className="text-gray-500 text-sm mb-4">
-                Standard: {note.standard}
-              </p>
+              <p className="text-gray-500 text-sm mb-4">Standard: {note.standard}</p>
             </div>
 
-            {/* Buttons Section */}
             <div className="flex flex-wrap gap-2 justify-center mt-2">
               <a
                 href={note.pdfUrl}
@@ -144,6 +167,7 @@ export default function NotesPage() {
                   <button
                     onClick={() => openModal(note)}
                     className="flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-700 rounded-lg hover:bg-blue-50 transition"
+                    disabled={loading}
                   >
                     <FaEdit className="text-blue-700 text-lg md:text-xl" />
                     Edit
@@ -152,6 +176,7 @@ export default function NotesPage() {
                   <button
                     onClick={() => deleteNote(note._id)}
                     className="flex items-center gap-2 px-4 py-2 border border-red-600 text-red-700 rounded-lg hover:bg-red-50 transition"
+                    disabled={loading}
                   >
                     <FaTrash className="text-red-700 text-lg md:text-xl" />
                     Delete
@@ -163,10 +188,12 @@ export default function NotesPage() {
         ))}
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-2">
-          <form onSubmit={submitNote} className="bg-white p-6 rounded-xl shadow-lg max-w-md w-full">
+          <form
+            onSubmit={submitNote}
+            className="bg-white p-6 rounded-xl shadow-lg max-w-md w-full"
+          >
             <h3 className="text-lg font-bold mb-4">
               {editingNote ? "Edit Note" : "Add Note"}
             </h3>
@@ -177,6 +204,7 @@ export default function NotesPage() {
               required
               placeholder="Note Name"
               className="border rounded p-2 w-full mb-3 focus:ring-2 focus:ring-indigo-300 outline-none"
+              disabled={loading}
             />
             <input
               name="pdfUrl"
@@ -185,18 +213,21 @@ export default function NotesPage() {
               required
               placeholder="PDF Link (Google Drive or Public URL)"
               className="border rounded p-2 w-full mb-3 focus:ring-2 focus:ring-indigo-300 outline-none"
+              disabled={loading}
             />
             <div className="flex justify-between">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
                 className="border px-4 py-2 rounded hover:bg-gray-100 transition"
+                disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition"
+                disabled={loading}
               >
                 Save
               </button>

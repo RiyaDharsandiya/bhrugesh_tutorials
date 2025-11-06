@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaPlus, FaEdit, FaTrash, FaBook, FaTimes, FaSchool } from "react-icons/fa";
+import Loader from "../components/Loader"; // Adjust path as needed
+import { toast } from "react-toastify";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -14,12 +16,16 @@ export default function LecturePage() {
   const [editChapter, setEditChapter] = useState(null);
   const [chapterData, setChapterData] = useState({ chapterName: "", standard: "Std8" });
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const user = JSON.parse(sessionStorage.getItem("user"));
   const isAdmin = user?.role === "admin";
   const [selectedStd, setSelectedStd] = useState("Std8");
 
   useEffect(() => {
-    axios.get(`${API_URL}/api/chapters`).then((res) => setChapters(res.data));
+    axios
+      .get(`${API_URL}/api/chapters`)
+      .then((res) => setChapters(res.data))
+      .catch(() => toast.error("Failed to load chapters"));
   }, []);
 
   const handleChange = (e) => setChapterData({ ...chapterData, [e.target.name]: e.target.value });
@@ -27,13 +33,14 @@ export default function LecturePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
+    setLoading(true);
     try {
       if (isEditing && editChapter) {
         await axios.put(`${API_URL}/api/chapters/${editChapter._id}`, chapterData);
-        setMessage("Chapter updated successfully");
+        toast.success("Chapter updated successfully");
       } else {
         await axios.post(`${API_URL}/api/chapters/add`, chapterData);
-        setMessage("Chapter added successfully");
+        toast.success("Chapter added successfully");
       }
       setShowForm(false);
       setIsEditing(false);
@@ -43,7 +50,9 @@ export default function LecturePage() {
       setChapters(res.data);
       setMessage("");
     } catch (error) {
-      setMessage(error.response?.data?.message || "Operation failed");
+      toast.error(error.response?.data?.message || "Operation failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,19 +66,28 @@ export default function LecturePage() {
 
   const handleDelete = async (chapterId) => {
     if (!window.confirm("Are you sure you want to delete this chapter?")) return;
+    setLoading(true);
     try {
       await axios.delete(`${API_URL}/api/chapters/${chapterId}`);
-      setMessage("Chapter deleted");
+      toast.success("Chapter deleted");
       const res = await axios.get(`${API_URL}/api/chapters`);
       setChapters(res.data);
       setMessage("");
     } catch (error) {
-      setMessage(error.response?.data?.message || "Failed to delete");
+      toast.error(error.response?.data?.message || "Failed to delete");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="p-4 md:p-8  mx-auto min-h-screen ">
+    <div className="p-4 md:p-8 mx-auto min-h-screen">
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <Loader />
+        </div>
+      )}
+
       <h2 className="text-3xl font-extrabold mb-8 text-center text-indigo-800 flex items-center justify-center gap-3">
         <FaSchool className="text-indigo-600" /> Course Lectures
       </h2>
@@ -87,6 +105,7 @@ export default function LecturePage() {
                 }`}
                 onClick={() => setSelectedStd(std)}
                 aria-label={`Select standard ${std}`}
+                disabled={loading}
               >
                 {std}
               </button>
@@ -101,6 +120,7 @@ export default function LecturePage() {
               setMessage("");
             }}
             aria-label="Add Chapter"
+            disabled={loading}
           >
             <FaPlus /> Add Chapter
           </button>
@@ -108,7 +128,7 @@ export default function LecturePage() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm bg-opacity-30  p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm bg-opacity-30 p-4">
           <form
             onSubmit={handleSubmit}
             className="bg-white rounded-xl shadow-xl max-w-lg w-full p-7 relative"
@@ -119,6 +139,7 @@ export default function LecturePage() {
               onClick={() => setShowForm(false)}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
               aria-label="Close form"
+              disabled={loading}
             >
               <FaTimes />
             </button>
@@ -134,6 +155,7 @@ export default function LecturePage() {
               required
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-400 outline-none mb-5"
               placeholder="Enter chapter name"
+              disabled={loading}
             />
             <label className="block mb-1 font-semibold text-gray-700">Standard</label>
             <select
@@ -142,6 +164,7 @@ export default function LecturePage() {
               onChange={handleChange}
               required
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-400 outline-none mb-6"
+              disabled={loading}
             >
               <option value="Std8">Std8</option>
               <option value="Std9">Std9</option>
@@ -152,6 +175,7 @@ export default function LecturePage() {
             <button
               type="submit"
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold transition-transform active:scale-95 shadow-md"
+              disabled={loading}
             >
               {isEditing ? "Update Chapter" : "Add Chapter"}
             </button>
@@ -178,6 +202,7 @@ export default function LecturePage() {
                       onClick={() => navigate(`/lecture/${chapter.chapterName}?standard=${std}`)}
                       className="px-5 py-2 border border-indigo-600 text-indigo-600 rounded-full font-semibold hover:bg-indigo-100 transition"
                       aria-label={`Start course ${chapter.chapterName}`}
+                      disabled={loading}
                     >
                       Start Course
                     </button>
@@ -187,6 +212,7 @@ export default function LecturePage() {
                           onClick={() => handleEdit(chapter, std)}
                           className="px-5 py-2 rounded-full bg-yellow-400 text-white font-semibold hover:bg-yellow-500 transition-shadow shadow"
                           aria-label={`Edit chapter ${chapter.chapterName}`}
+                          disabled={loading}
                         >
                           <FaEdit className="inline-block mr-2" /> Edit
                         </button>
@@ -194,6 +220,7 @@ export default function LecturePage() {
                           onClick={() => handleDelete(chapter._id)}
                           className="px-5 py-2 rounded-full bg-red-600 text-white font-semibold hover:bg-red-700 transition-shadow shadow"
                           aria-label={`Delete chapter ${chapter.chapterName}`}
+                          disabled={loading}
                         >
                           <FaTrash className="inline-block mr-2" /> Delete
                         </button>
