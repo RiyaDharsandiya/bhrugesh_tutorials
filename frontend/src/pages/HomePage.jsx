@@ -7,13 +7,14 @@ import {
   FaUserPlus,
   FaBookOpen
 } from "react-icons/fa";
+import Loader from "../components/Loader";
 
 export default function HomePage() {
   const user = JSON.parse(sessionStorage.getItem("user")); // ✅ Check if user is logged in
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-gray-800">
-      {/* Hero Section */}
+      {loading && <Loader />}
       <section className="flex-grow flex items-center justify-center px-6 py-16">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
