@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaBook, FaNotesMedical, FaSignInAlt, FaUserCircle, FaBars, FaTimes, FaChalkboardTeacher } from "react-icons/fa";
+import logo from "../assets/logo.png"; 
 
 export default function Navbar() {
   const loc = useLocation();
@@ -25,7 +26,11 @@ export default function Navbar() {
     <nav className="w-full bg-indigo-100 shadow-sm sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="text-2xl font-bold text-indigo-600 flex items-center gap-2">
-          <FaChalkboardTeacher className="text-indigo-700" /> Bhrugesh Tutorials
+        <img
+          src={logo}
+          alt="Bhrugesh Tutorials logo"
+          className="h-15 w-15 rounded-full"
+        /> Bhrugesh Tutorials
         </Link>
 
         {/* Desktop Nav */}
