@@ -33,12 +33,7 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Verify Email - accessible only if email pending */}
-            <Route
-            path="/verify-email"
-            element={
-              sessionStorage.getItem("pendingEmail") ? <VerifyEmail /> : <Navigate to="/auth" replace />
-            }
-          />
+            <Route path="/verify-email" element={<VerifyEmail /> } />
 
             {/* ✅ Protected routes */}
             <Route

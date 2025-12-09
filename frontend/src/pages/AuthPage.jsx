@@ -26,7 +26,6 @@ export default function AuthPage() {
       if (isSignup) {
         const res = await axios.post(`${API_URL}/api/auth/signup`, form);
         toast.success(res.data.message || "Verification code sent to your email!");
-        sessionStorage.setItem("pendingEmail", form.email);
         navigate("/verify-email");
         setForm({ name: "", email: "", password: "", standard: "" });
         return;
