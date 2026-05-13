@@ -1,15 +1,24 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+
 import User from "../model/User.js";
 import UnverifiedUser from "../model/UnverifiedUser.js";
 import Otp from "../model/Otp.js";
+
 import "dotenv/config";
-import { MailerSend } from "mailersend";
 
-const mailerSend = new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY });
+// ---------- NODEMAILER SETUP ----------
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
-// ---------- Helpers ----------
+// ---------- HELPERS ----------
 const validatePassword = (password) => {
   const regex = /^(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{6,})/;
   return regex.test(password);
@@ -37,6 +46,7 @@ export const signup = async (req, res) => {
 
   try {
     const existingUser = await User.findOne({ email });
+
     if (existingUser) {
       return res.status(400).json({ message: "User already exists." });
     }
@@ -45,6 +55,7 @@ export const signup = async (req, res) => {
     await UnverifiedUser.deleteOne({ email });
 
     const otp = generateOtp();
+
     const hashedPassword = await bcrypt.hash(password, 12);
 
     await UnverifiedUser.create({
@@ -58,67 +69,96 @@ export const signup = async (req, res) => {
     await Otp.create({ email, otp });
 
     const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #007bff;">Welcome to Bhrugesh Tutorials!</h1>
-        <p>Hi ${name},</p>
-        <p>Thank you for registering. Please verify your email using the code below:</p>
-        <h2 style="background: #f0f0f0; padding: 12px; text-align: center; letter-spacing: 3px; font-size: 24px;">
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+        <h1 style="color:#4f46e5;">Welcome to Bhrugesh Tutorials</h1>
+
+        <p>Hello ${name},</p>
+
+        <p>Your verification code is:</p>
+
+        <div style="
+          background:#f3f4f6;
+          padding:20px;
+          text-align:center;
+          font-size:32px;
+          font-weight:bold;
+          letter-spacing:5px;
+          border-radius:10px;
+        ">
           ${otp}
-        </h2>
-        <p>This code is valid for 10 minutes.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-        <br>
-        <p>Best regards,<br><strong>Bhrugesh Tutorials Team</strong></p>
+        </div>
+
+        <p style="margin-top:20px;">
+          This OTP is valid for 10 minutes.
+        </p>
+
+        <p>Thank you for registering.</p>
       </div>
     `;
-
+    console.log("EMAIL_USER:", process.env.EMAIL_USER);
+    console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "EXISTS" : "MISSING");
     try {
-      await mailerSend.email.send({
-        from: {
-          email: process.env.MAILERSEND_FROM_EMAIL,
-          name: "Bhrugesh Tutorials",
-        },
-        to: [{ email }],
-        subject: "Verify Your Email Address",
+      await transporter.sendMail({
+        from: `"Bhrugesh Tutorials" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Verify Your Email",
         html: emailContent,
       });
 
       return res.status(200).json({
-        message:
-          "Verification code sent to your email. If you don't see the email, please check your spam folder and mark it as 'Not Spam'.",
+        message: "Verification code sent successfully!",
         email,
-        name,
       });
     } catch (mailErr) {
-      console.error("❌ Email sending failed:", mailErr);
-      console.error("Status:", mailErr?.response?.status);
-      console.error("Body:", mailErr?.response?.data);
+      console.error("EMAIL ERROR:", mailErr);
+
       return res.status(500).json({
-        message: "Failed to send verification email. Please try again later.",
+        message: "Failed to send verification email.",
+        error: mailErr.message,
       });
     }
   } catch (err) {
-    console.error("Signup error:", err.message);
-    res
-      .status(500)
-      .json({ message: "Something went wrong.", error: err.message });
+    console.error("SIGNUP ERROR:", err);
+
+    return res.status(500).json({
+      message: "Something went wrong.",
+      error: err.message,
+    });
   }
 };
 
 // ---------- LOGIN ----------
 export const login = async (req, res) => {
   const { email, password } = req.body;
+
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found." });
 
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
-    if (!isPasswordCorrect)
-      return res.status(400).json({ message: "Invalid credentials." });
+    if (!user) {
+      return res.status(400).json({
+        message: "User not found.",
+      });
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    const isPasswordCorrect = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!isPasswordCorrect) {
+      return res.status(400).json({
+        message: "Invalid credentials.",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1d",
+      }
+    );
+
     return res.status(200).json({
       user: {
         name: user.name,
@@ -130,8 +170,10 @@ export const login = async (req, res) => {
       token,
       message: "Login successful",
     });
-  } catch {
-    res.status(500).json({ message: "Something went wrong." });
+  } catch (err) {
+    return res.status(500).json({
+      message: "Something went wrong.",
+    });
   }
 };
 
@@ -141,15 +183,20 @@ export const verifyEmail = async (req, res) => {
 
   try {
     const otpDoc = await Otp.findOne({ email });
+
     if (!otpDoc || otpDoc.otp !== code) {
-      return res
-        .status(400)
-        .json({ message: "Invalid or expired verification code" });
+      return res.status(400).json({
+        message: "Invalid or expired verification code",
+      });
     }
 
     const userData = await UnverifiedUser.findOne({ email });
-    if (!userData)
-      return res.status(400).json({ message: "User data not found" });
+
+    if (!userData) {
+      return res.status(400).json({
+        message: "User data not found",
+      });
+    }
 
     const newUser = await User.create({
       name: userData.name,
@@ -163,49 +210,31 @@ export const verifyEmail = async (req, res) => {
     await Otp.deleteOne({ email });
     await UnverifiedUser.deleteOne({ email });
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    // fire-and-forget confirmation email via MailerSend
-    (async () => {
-      try {
-        const html = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: #004aad; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
-              <h1>Bhrugesh Tutorials</h1>
-            </div>
-            <div style="background: #ffffff; padding: 20px; border: 1px solid #e0e0e0; border-top: none;">
-              <p>Hi <strong>${newUser.name}</strong>,</p>
-              <p>Congratulations! 🎉 Your email has been successfully verified.</p>
-              <p>You can now log in and start exploring lectures, notes, and much more.</p>
-              <p style="margin-top: 20px;">We’re thrilled to have you on board!</p>
-              <p style="color: #004aad; font-weight: bold;">— Team Bhrugesh Tutorials</p>
-            </div>
-            <div style="background: #f8f8f8; text-align: center; padding: 10px; border-top: 1px solid #ddd; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 12px; color: #888;">This is an automated message, please do not reply.</p>
-            </div>
-          </div>
-        `;
-
-        await mailerSend.email.send({
-          from: {
-            email: process.env.MAILERSEND_FROM_EMAIL,
-            name: "Bhrugesh Tutorials",
-          },
-          to: [{ email }],
-          subject:
-            "🎉 Email Verified Successfully - Welcome to Bhrugesh Tutorials!",
-          html,
-        });
-
-        console.log("Confirmation email sent");
-      } catch (e) {
-        console.error("Confirmation email failed:", e);
+    const token = jwt.sign(
+      { id: newUser._id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
       }
-    })();
+    );
 
-    res.status(200).json({
+    // confirmation email
+    try {
+      await transporter.sendMail({
+        from: `"Bhrugesh Tutorials" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "Email Verified Successfully",
+        html: `
+          <h2>Welcome ${newUser.name} 🎉</h2>
+          <p>Your email has been verified successfully.</p>
+          <p>You can now login and start learning.</p>
+        `,
+      });
+    } catch (err) {
+      console.log("Confirmation email failed:", err.message);
+    }
+
+    return res.status(200).json({
       message: "Email verified successfully!",
       token,
       user: {
@@ -217,10 +246,12 @@ export const verifyEmail = async (req, res) => {
       },
     });
   } catch (err) {
-    console.log("verify", err.message);
-    res
-      .status(500)
-      .json({ message: "Verification error", error: err.message });
+    console.log("VERIFY ERROR:", err);
+
+    return res.status(500).json({
+      message: "Verification error",
+      error: err.message,
+    });
   }
 };
 
@@ -230,36 +261,54 @@ export const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found." });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "15m",
-    });
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found.",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "15m",
+      }
+    );
+
     const resetLink = `${process.env.CLIENT_URL}/reset-password/${token}`;
 
     const html = `
-      <h2>Password Reset Request</h2>
-      <p>Hello ${user.name || "User"},</p>
-      <p>Click below to reset your password (expires in 15 minutes):</p>
-      <a href="${resetLink}" style="color:#4f46e5;">Reset Password</a>
+      <h2>Password Reset</h2>
+
+      <p>Hello ${user.name},</p>
+
+      <p>Click below to reset your password:</p>
+
+      <a href="${resetLink}">
+        Reset Password
+      </a>
+
+      <p>This link expires in 15 minutes.</p>
     `;
 
-    await mailerSend.email.send({
-      from: {
-        email: process.env.MAILERSEND_FROM_EMAIL,
-        name: "Bhrugesh Tutorials",
-      },
-      to: [{ email }],
-      subject: "Password Reset - Bhrugesh Tutorials",
+    await transporter.sendMail({
+      from: `"Bhrugesh Tutorials" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Password Reset",
       html,
     });
 
-    res.json({ message: "Password reset link sent to your email." });
+    return res.json({
+      message: "Password reset link sent successfully.",
+    });
   } catch (err) {
-    console.error("Forgot password email error:", err);
-    res
-      .status(500)
-      .json({ message: "Error sending reset link.", error: err.message });
+    console.error("FORGOT PASSWORD ERROR:", err);
+
+    return res.status(500).json({
+      message: "Error sending reset link.",
+      error: err.message,
+    });
   }
 };
 
@@ -269,20 +318,33 @@ export const resetPassword = async (req, res) => {
   const { password } = req.body;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
 
     const user = await User.findById(decoded.id);
+
     if (!user) {
-      return res.status(400).json({ message: "Invalid or expired link." });
+      return res.status(400).json({
+        message: "Invalid or expired link.",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     user.password = hashedPassword;
+
     await user.save();
 
-    res.json({ message: "Password reset successful." });
+    return res.json({
+      message: "Password reset successful.",
+    });
   } catch (error) {
-    console.error("❌ Reset password error:", error.message);
-    res.status(400).json({ message: "Invalid or expired link." });
+    console.error("RESET PASSWORD ERROR:", error.message);
+
+    return res.status(400).json({
+      message: "Invalid or expired link.",
+    });
   }
 };

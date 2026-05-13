@@ -18,9 +18,8 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mailersend": "^2.6.0",
     "mongoose": "^8.19.1",
-    "nodemailer": "^7.0.10",
+    "nodemailer": "^7.0.13",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
