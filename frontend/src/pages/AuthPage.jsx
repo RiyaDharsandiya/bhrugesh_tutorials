@@ -11,6 +11,7 @@ import auth from "../assets/auth.jpg";
 const API_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
 
 export default function AuthPage() {
+  console.log("PRODUCTION API URL:", API_URL);
   const [isSignup, setIsSignup] = useState(false);
 
   const [form, setForm] = useState({
