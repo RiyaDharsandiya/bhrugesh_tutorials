@@ -81,16 +81,7 @@ function App() {
 
             <Route
               path="/verify-email"
-              element={
-                verifyEmail ? (
-                  <VerifyEmail />
-                ) : (
-                  <Navigate
-                    to="/auth"
-                    replace
-                  />
-                )
-              }
+              element={<VerifyEmail />}
             />
 
             {/* ---------- PROTECTED ROUTES ---------- */}
