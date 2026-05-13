@@ -11,18 +11,14 @@ import "dotenv/config";
 
 // ---------- NODEMAILER SETUP ----------
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
 
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.BREVO_EMAIL,
+    pass: process.env.BREVO_SMTP_KEY,
   },
-
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
 });
 
 // ---------- HELPERS ----------
@@ -120,7 +116,7 @@ export const signup = async (req, res) => {
     // don't fail signup if email fails
     try {
       await transporter.sendMail({
-        from: `"Bhrugesh Tutorials" <${process.env.EMAIL_USER}>`,
+        from: `"Bhrugesh Tutorials" <${process.env.BREVO_EMAIL}>`,
         to: email,
         subject: "Verify Your Email",
         html: emailContent,
