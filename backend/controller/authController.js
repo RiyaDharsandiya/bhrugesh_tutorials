@@ -24,13 +24,6 @@ const transporter = nodemailer.createTransport({
   greetingTimeout: 10000,
   socketTimeout: 10000,
 });
-transporter.verify((error, success) => {
-  if (error) {
-    console.log("SMTP ERROR:", error);
-  } else {
-    console.log("SMTP SERVER READY");
-  }
-});
 
 // ---------- HELPERS ----------
 const validatePassword = (password) => {
@@ -48,7 +41,9 @@ export const signup = async (req, res) => {
   const { name, email, password, standard } = req.body;
 
   if (!name || !email || !password || !standard) {
-    return res.status(400).json({ message: "All fields required." });
+    return res.status(400).json({
+      message: "All fields required.",
+    });
   }
 
   if (!validatePassword(password)) {
@@ -62,16 +57,22 @@ export const signup = async (req, res) => {
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists." });
+      return res.status(400).json({
+        message: "User already exists.",
+      });
     }
 
+    // remove old records
     await Otp.deleteOne({ email });
     await UnverifiedUser.deleteOne({ email });
 
+    // generate OTP
     const otp = generateOtp();
 
+    // hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // save temporary user
     await UnverifiedUser.create({
       name,
       email,
@@ -80,11 +81,18 @@ export const signup = async (req, res) => {
       standard,
     });
 
-    await Otp.create({ email, otp });
+    // save otp
+    await Otp.create({
+      email,
+      otp,
+    });
 
+    // email html
     const emailContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-        <h1 style="color:#4f46e5;">Welcome to Bhrugesh Tutorials</h1>
+        <h1 style="color:#4f46e5;">
+          Welcome to Bhrugesh Tutorials
+        </h1>
 
         <p>Hello ${name},</p>
 
@@ -105,12 +113,11 @@ export const signup = async (req, res) => {
         <p style="margin-top:20px;">
           This OTP is valid for 10 minutes.
         </p>
-
-        <p>Thank you for registering.</p>
       </div>
     `;
-    console.log("EMAIL_USER:", process.env.EMAIL_USER);
-    console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "EXISTS" : "MISSING");
+
+    // IMPORTANT:
+    // don't fail signup if email fails
     try {
       await transporter.sendMail({
         from: `"Bhrugesh Tutorials" <${process.env.EMAIL_USER}>`,
@@ -119,18 +126,25 @@ export const signup = async (req, res) => {
         html: emailContent,
       });
 
-      return res.status(200).json({
-        message: "Verification code sent successfully!",
-        email,
-      });
+      console.log("OTP EMAIL SENT");
     } catch (mailErr) {
-      console.error("EMAIL ERROR:", mailErr);
+      console.error(
+        "EMAIL FAILED BUT SIGNUP CONTINUES:"
+      );
 
-      return res.status(500).json({
-        message: "Failed to send verification email.",
-        error: mailErr.message,
-      });
+      console.error(mailErr.message);
+
+      // IMPORTANT:
+      // still continue signup
     }
+
+    // ALWAYS SUCCESS
+    return res.status(200).json({
+      success: true,
+      message:
+        "Verification code generated successfully.",
+      email,
+    });
   } catch (err) {
     console.error("SIGNUP ERROR:", err);
 
